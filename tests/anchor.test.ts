@@ -1,34 +1,41 @@
 // No imports needed: web3, anchor, pg and more are globally available
 
-describe("Test", () => {
-  it("initialize", async () => {
-    // Generate keypair for the new account
-    const newAccountKp = new web3.Keypair();
+describe("Tienda de Motos", () => {
+  it("crear tienda", async () => {
+    // Generar keypair para la nueva tienda
+    const tiendaKp = new web3.Keypair();
 
-    // Send transaction
-    const data = new BN(42);
+    // Definir la marca de la tienda
+    const marcaTienda = "MotoRacing";
+
+    // Enviar transacción para crear la tienda
     const txHash = await pg.program.methods
-      .initialize(data)
+      .crearTienda(marcaTienda)
       .accounts({
-        newAccount: newAccountKp.publicKey,
-        signer: pg.wallet.publicKey,
+        owner: pg.wallet.publicKey,
+        tienda: tiendaKp.publicKey,
         systemProgram: web3.SystemProgram.programId,
       })
-      .signers([newAccountKp])
+      .signers([tiendaKp])
       .rpc();
-    console.log(`Use 'solana confirm -v ${txHash}' to see the logs`);
 
-    // Confirm transaction
+    console.log(`Use 'solana confirm -v ${txHash}' para ver los logs`);
+
+    // Confirmar transacción
     await pg.connection.confirmTransaction(txHash);
 
-    // Fetch the created account
-    const newAccount = await pg.program.account.newAccount.fetch(
-      newAccountKp.publicKey
-    );
+    // Fetch de la cuenta tienda creada
+    const tienda = await pg.program.account.tienda.fetch(tiendaKp.publicKey);
 
-    console.log("On-chain data is:", newAccount.data.toString());
+    console.log("Datos de la tienda en cadena:", tienda);
 
-    // Check whether the data on-chain is equal to local 'data'
-    assert(data.eq(newAccount.data));
+    // Verificar que la marca coincide con la que enviamos
+    assert.equal(tienda.marca, marcaTienda);
+
+    // Verificar que el owner es el wallet actual
+    assert.equal(tienda.owner.toString(), pg.wallet.publicKey.toString());
+
+    // Verificar que inicialmente no hay productos
+    assert.equal(tienda.productos.length, 0);
   });
 });
